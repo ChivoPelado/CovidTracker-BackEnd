@@ -11,8 +11,6 @@ struct CrearRegistro: Migration {
     func prepare(on database: Database) -> EventLoopFuture<Void> {
         database.schema("registro")
             .id()
-            .field("nombre", .string, .required)
-            .field("direccion", .string, .required)
             .field("fechaContagio", .datetime, .required)
             .field("latitud", .double, .required)
             .field("longitud", .double, .required)

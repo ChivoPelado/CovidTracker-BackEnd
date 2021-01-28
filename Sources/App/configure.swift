@@ -2,20 +2,21 @@ import Vapor
 import Fluent
 import FluentSQLiteDriver
 
-// configures your application
 public func configure(_ app: Application) throws {
-    // uncomment to serve files from /Public folder
-    // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
     
-  //  let directoryConfig = DirectoryConfiguration.detect()
-    //app.directory
-    //Referencia y crea esquema de Base de datos
-    app.databases.use(.sqlite(.file("\(app.directory.workingDirectory)covidtracker.sqlite")), as: .sqlite)
+    //Referencia y crea la Base de datos
+    app.databases.use(.sqlite(.file("covidtracker.sqlite")), as: .sqlite)
+    
+    app.middleware.use(ErrorMiddleware.default(environment: app.environment))
+    
+    //Crea esquema de Base de datos
+    app.migrations.add(CreateUsers())
+    app.migrations.add(CreateTokens())
     app.migrations.add(CrearRegistro())
+    
     app.logger.logLevel = .debug
     try app.autoMigrate().wait()
-    
-   
-    // register routes
+
+    // registra rutas
     try routes(app)
 }
