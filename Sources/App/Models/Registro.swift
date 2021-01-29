@@ -12,8 +12,8 @@ import Vapor
 
 final class Registro: Content, Model {
     struct Publica: Content {
-        let id: UUID
         let fechaContagio: Date
+        let id: UUID
         let latitud: Double
         let longitud: Double
         let usuario: Usuario.Publico
@@ -46,7 +46,7 @@ final class Registro: Content, Model {
     
     init() {}
     
-    init(id: UUID?, fechaContagio: Date, latitud: Double, longitud: Double, usuarioId: Usuario.IDValue, creadoEl: Date, actualizadoEl: Date) {
+    init(id: UUID? = nil, fechaContagio: Date, latitud: Double, longitud: Double, usuarioId: Usuario.IDValue, creadoEl: Date, actualizadoEl: Date) {
         self.id = id
         self.fechaContagio = fechaContagio
         self.latitud = latitud
@@ -58,9 +58,12 @@ final class Registro: Content, Model {
 }
 
 extension Registro {
+//    static func crear(desde nuevoRegistro: NuevoRegistro) throws -> Registro {
+//        Registro(fechaContagio: nuevoRegistro.fechaContagio, latitud: nuevoRegistro.latitud, longitud: nuevoRegistro.longitud, usuarioId:  )
+//       // Usuario(username: userSignup.username, passwordHash: try Bcrypt.hash(userSignup.password), nombres: userSignup.nombres)
+//    }
     func infoPublica() throws -> Publica {
-        Publica(id: try requireID(),
-               fechaContagio: fechaContagio,
+        Publica(fechaContagio: fechaContagio, id: try requireID(),
                latitud: latitud,
                longitud: longitud,
                usuario: try usuario.infoPublica(),

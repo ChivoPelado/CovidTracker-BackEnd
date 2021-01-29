@@ -8,75 +8,76 @@
 import Vapor
 import Fluent
 
-struct UserSignup: Content {
-  let username: String
-  let password: String
+struct RegistroUsuario: Content {
+    let username: String
+    let password: String
+    let nombres: String
 }
 
-struct NewSession: Content {
-  let token: String
-  let user: Usuario.Publico
+struct NuevaSesion: Content {
+    let token: String
+    let usuario: Usuario.Publico
 }
 
-extension UserSignup: Validatable {
-  static func validations(_ validations: inout Validations) {
-    validations.add("username", as: String.self, is: !.empty)
-    validations.add("password", as: String.self, is: .count(6...))
-  }
+extension RegistroUsuario: Validatable {
+    static func validations(_ validations: inout Validations) {
+        validations.add("username", as: String.self, is: !.empty)
+        validations.add("password", as: String.self, is: .count(6...))
+    }
 }
 
 struct UserController: RouteCollection {
-  func boot(routes: RoutesBuilder) throws {
-    let usersRoute = routes.grouped("users")
-    usersRoute.post("signup", use: create)
-    
-    let tokenProtected = usersRoute.grouped(Token.authenticator())
-    tokenProtected.get("me", use: getMyOwnUser)
-    
-    let passwordProtected = usersRoute.grouped(Usuario.authenticator())
-    passwordProtected.post("login", use: login)
-  }
-
-  fileprivate func create(req: Request) throws -> EventLoopFuture<NewSession> {
-    try UserSignup.validate(content: req)
-    let userSignup = try req.content.decode(UserSignup.self)
-    let user = try Usuario.crear(desde: userSignup)
-    var token: Token!
-
-    return checkIfUserExists(userSignup.username, req: req).flatMap { exists in
-      guard !exists else {
-        return req.eventLoop.future(error: UserError.usernameTaken)
-      }
-
-      return user.save(on: req.db)
-    }.flatMap {
-      guard let newToken = try? user.crearToken(source: .signup) else {
-        return req.eventLoop.future(error: Abort(.internalServerError))
-      }
-      token = newToken
-      return token.save(on: req.db)
-    }.flatMapThrowing {
-      NewSession(token: token.value, user: try user.infoPublica())
+    func boot(routes: RoutesBuilder) throws {
+        let usersRoute = routes.grouped("usuarios")
+        usersRoute.post("registro", use: registrar)
+        
+        let tokenProtected = usersRoute.grouped(Token.authenticator())
+        tokenProtected.get("yo", use: obtenerMiInformacion)
+        
+        let passwordProtected = usersRoute.grouped(Usuario.authenticator())
+        passwordProtected.post("autenticar", use: autenticar)
     }
-  }
-
-  fileprivate func login(req: Request) throws -> EventLoopFuture<NewSession> {
-    let user = try req.auth.require(Usuario.self)
-    let token = try user.crearToken(source: .login)
-
-    return token.save(on: req.db).flatMapThrowing {
-      NewSession(token: token.value, user: try user.infoPublica())
+    
+    fileprivate func registrar(req: Request) throws -> EventLoopFuture<NuevaSesion> {
+        try RegistroUsuario.validate(content: req)
+        let userSignup = try req.content.decode(RegistroUsuario.self)
+        let usuario = try Usuario.crear(desde: userSignup)
+        var token: Token!
+        
+        return verificaSiUsuarioExiste(userSignup.username, req: req).flatMap { existe in
+            guard !existe else {
+                return req.eventLoop.future(error: UserError.usernameTaken)
+            }
+            
+            return usuario.save(on: req.db)
+        }.flatMap {
+            guard let nuevoToken = try? usuario.crearToken(source: .signup) else {
+                return req.eventLoop.future(error: Abort(.internalServerError))
+            }
+            token = nuevoToken
+            return token.save(on: req.db)
+        }.flatMapThrowing {
+            NuevaSesion(token: token.value, usuario: try usuario.infoPublica())
+        }
     }
-  }
-
-  func getMyOwnUser(req: Request) throws -> Usuario.Publico {
-    try req.auth.require(Usuario.self).infoPublica()
-  }
-
-  private func checkIfUserExists(_ username: String, req: Request) -> EventLoopFuture<Bool> {
-    Usuario.query(on: req.db)
-      .filter(\.$username == username)
-      .first()
-      .map { $0 != nil }
-  }
+    
+    fileprivate func autenticar(req: Request) throws -> EventLoopFuture<NuevaSesion> {
+        let usuario = try req.auth.require(Usuario.self)
+        let token = try usuario.crearToken(source: .login)
+        
+        return token.save(on: req.db).flatMapThrowing {
+            NuevaSesion(token: token.value, usuario: try usuario.infoPublica())
+        }
+    }
+    
+    func obtenerMiInformacion(req: Request) throws -> Usuario.Publico {
+        try req.auth.require(Usuario.self).infoPublica()
+    }
+    
+    private func verificaSiUsuarioExiste(_ username: String, req: Request) -> EventLoopFuture<Bool> {
+        Usuario.query(on: req.db)
+            .filter(\.$username == username)
+            .first()
+            .map { $0 != nil }
+    }
 }

@@ -9,16 +9,19 @@ import Fluent
 
 struct CrearRegistro: Migration {
     func prepare(on database: Database) -> EventLoopFuture<Void> {
-        database.schema("registro")
+        database.schema("registros")
             .id()
-            .field("fechaContagio", .datetime, .required)
+            .field("fecha_contagio", .datetime, .required)
             .field("latitud", .double, .required)
             .field("longitud", .double, .required)
+            .field("usuario_id", .uuid, .references("usuarios", "id"), .required)
+            .field("creado_el", .datetime, .required)
+            .field("actualizado_el", .datetime, .required)
             .create()
     }
     
     func revert(on database: Database) -> EventLoopFuture<Void> {
-        database.schema("registro").delete()
+        database.schema("registros").delete()
     }
     
     
