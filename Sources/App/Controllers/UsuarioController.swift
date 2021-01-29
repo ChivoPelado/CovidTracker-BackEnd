@@ -26,7 +26,7 @@ extension RegistroUsuario: Validatable {
     }
 }
 
-struct UserController: RouteCollection {
+struct UsuarioController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
         let usersRoute = routes.grouped("usuarios")
         usersRoute.post("registro", use: registrar)

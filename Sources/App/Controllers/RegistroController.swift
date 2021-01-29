@@ -17,17 +17,25 @@ struct NuevoRegistro: Content {
 
 struct RegistroController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
-        let dinnersRoute = routes.grouped("registro")
+        let rutasRegistro = routes.grouped("registro")
+        rutasRegistro.get("publicos", use: obtenerRegistros)
         
-        let tokenProtected = dinnersRoute.grouped(Token.authenticator())
-        
-        tokenProtected.post("nuevo", use: create)
-        tokenProtected.get("actual", use: getDinner)
-   
+        let protegidoConToken = rutasRegistro.grouped(Token.authenticator())
+        protegidoConToken.post("nuevo", use: creaRegistro)
+        protegidoConToken.get("actual", use: obtenerRegistro)
+        protegidoConToken.put("modificar", ":id", use: actualizarRegistro)
+        protegidoConToken.put("eliminar", ":id", use: eliminarRegistro)
+    }
+    fileprivate func obtenerRegistros(req: Request) throws -> EventLoopFuture<[Registro.Publica]> {
+        return Registro.query(on: req.db)
+            .all()
+            .flatMapEachThrowing {
+                try $0.infoPublica()
+            }
     }
     
-    fileprivate func create(req: Request) throws -> EventLoopFuture<Registro> {
-        let usuario = try req.auth.require(Usuario.self)
+    fileprivate func creaRegistro(req: Request) throws -> EventLoopFuture<Registro> {
+        
         let nuevoRegistro = try req.content.decode(NuevoRegistro.self)
         let registro = Registro(
             fechaContagio: nuevoRegistro.fechaContagio,
@@ -40,7 +48,7 @@ struct RegistroController: RouteCollection {
         return registro.save(on: req.db).map { registro }
     }
     
-    fileprivate func getDinner(req: Request) throws -> EventLoopFuture<[Registro]> {
+    fileprivate func obtenerRegistro(req: Request) throws -> EventLoopFuture<[Registro]> {
         let usuario = try req.auth.require(Usuario.self)
         guard let usuarioId = usuario.id else {
             throw Abort(.badRequest)
@@ -51,5 +59,40 @@ struct RegistroController: RouteCollection {
                 $0.$registro.get(on: req.db)
             }
     }
+    func actualizarRegistro(_ req: Request) throws
+    -> EventLoopFuture<Registro> {
+        
+        guard let id = req.parameters.get("id", as: UUID.self) else {
+            throw Abort(.badRequest)
+        }
+        
+        let registroActualizado = try req.content.decode(NuevoRegistro.self)
+        
+        return Registro.find(id, on: req.db)
+            .unwrap(or: Abort(.notFound))
+            .flatMap { registro in
+                registro.fechaContagio = registroActualizado.fechaContagio
+                registro.latitud = registroActualizado.latitud
+                registro.longitud = registroActualizado.longitud
+                registro.actualizadoEl = Date()
+                
+                return registro.save(on: req.db).map {
+                    registro
+                }
+            }
+    }
+    func eliminarRegistro(_ req: Request) throws
+    -> EventLoopFuture<HTTPStatus> {
+        
+        guard let id = req.parameters.get("id", as: UUID.self) else {
+            throw Abort(.badRequest)
+        }
+        
+        return Registro.find(id, on: req.db)
+            .unwrap(or: Abort(.notFound))
+            .flatMap { $0.delete(on: req.db) }
+            .map{ .ok }
+    }
 }
+
 

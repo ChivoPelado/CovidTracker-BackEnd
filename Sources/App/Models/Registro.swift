@@ -16,7 +16,6 @@ final class Registro: Content, Model {
         let id: UUID
         let latitud: Double
         let longitud: Double
-        let usuario: Usuario.Publico
         let creadoEl: Date?
         let actualizadoEl: Date?
     }
@@ -58,15 +57,10 @@ final class Registro: Content, Model {
 }
 
 extension Registro {
-//    static func crear(desde nuevoRegistro: NuevoRegistro) throws -> Registro {
-//        Registro(fechaContagio: nuevoRegistro.fechaContagio, latitud: nuevoRegistro.latitud, longitud: nuevoRegistro.longitud, usuarioId:  )
-//       // Usuario(username: userSignup.username, passwordHash: try Bcrypt.hash(userSignup.password), nombres: userSignup.nombres)
-//    }
     func infoPublica() throws -> Publica {
         Publica(fechaContagio: fechaContagio, id: try requireID(),
                latitud: latitud,
                longitud: longitud,
-               usuario: try usuario.infoPublica(),
                creadoEl: creadoEl,
                actualizadoEl: actualizadoEl)
     }
