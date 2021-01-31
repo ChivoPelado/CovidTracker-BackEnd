@@ -32,7 +32,7 @@ final class Usuario: Model {
     var nombres: String
     
     @Children(for: \.$usuario)
-    var registro: [Registro]
+    var caso: [Caso]
     
     @Timestamp(key: "creado_el", on: .create)
     var creadoEl: Date?
@@ -76,7 +76,7 @@ extension Usuario: ModelAuthenticatable {
     static let usernameKey = \Usuario.$username
     static let passwordHashKey = \Usuario.$passwordHash
     
-    func verify(password: String) throws -> Bool {
+    func verificar(password: String) throws -> Bool {
         try Bcrypt.verify(password, created: self.passwordHash)
     }
 }

@@ -9,12 +9,12 @@ import Fluent
 
 struct CrearRegistro: Migration {
     func prepare(on database: Database) -> EventLoopFuture<Void> {
-        database.schema("registros")
+        database.schema("geolocalizacion")
             .id()
-            .field("fecha_contagio", .datetime, .required)
+            .field("referencia", .string, .required)
             .field("latitud", .double, .required)
             .field("longitud", .double, .required)
-            .field("usuario_id", .uuid, .references("usuarios", "id"), .required)
+            .field("caso_id", .uuid, .references("casos", "id"), .required)
             .field("creado_el", .datetime, .required)
             .field("actualizado_el", .datetime, .required)
             .create()
